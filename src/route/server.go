@@ -10,14 +10,50 @@ import (
 	"strings"
 )
 
-// StartHttpServer 启动HTTP服务器
-func StartHttpServer(address string, port int) (err error) {
+const (
+	PARAM_TYPE_ERROR_CODE    = 1
+	PARAM_TYPE_ERROR_MESSAGE = "param type error"
+)
+
+type httpServiceHandler struct {
+	RequestParam    interface{}
+	ExecuteFunction func(interface{}) responseWrapper
+}
+
+type responseWrapper struct {
+	Code int64       `json:"code"`
+	Data interface{} `json:"data"`
+}
+
+// StartHTTPServer 启动HTTP服务器
+func StartHTTPServer(address string, port int) (err error) {
+	handlers := initHandlers()
 	listenAddress := fmt.Sprintf("%s:%d", address, port)
 	server := http.NewServeMux()
+	for url, handler := range handlers {
+		server.HandleFunc(url, wrapper(handler.RequestParam, handler.ExecuteFunction))
+	}
 	return http.ListenAndServe(listenAddress, server)
 }
 
-func wrapper(req interface{}, exec func(interface{}) interface{}) func(w http.ResponseWriter, r *http.Request) {
+func initHandlers() map[string]httpServiceHandler {
+	handlers := make(map[string]httpServiceHandler)
+	handlers["/login"] = httpServiceHandler{
+		RequestParam:    loginRequest{},
+		ExecuteFunction: login,
+	}
+	handlers["/createUser"] = httpServiceHandler{
+		RequestParam:    createUserRequest{},
+		ExecuteFunction: createUser,
+	}
+	handlers["/deleteUser"] = httpServiceHandler{
+		RequestParam:    deleteUsersRequest{},
+		ExecuteFunction: deleteUser,
+	}
+	return handlers
+}
+
+func wrapper(req interface{}, exec func(interface{}) responseWrapper) func(w http.ResponseWriter, r *http.Request) {
 	typeOfRequest := reflect.TypeOf(req)
 	reqFieldCount := typeOfRequest.NumField()
 	requestParamsMap := make(map[string]reflect.Type, reqFieldCount)
@@ -35,7 +71,9 @@ func wrapper(req interface{}, exec func(interface{}) interface{}) func(w http.Re
 				newStruct.FieldByName(paramName).Set(reflect.ValueOf(coverValue))
 			}
 		}
-		if jsonBytes, err := json.Marshal(exec(newStruct.Interface())); err == nil {
+		response := exec(newStruct.Interface())
+		fmt.Println(response)
+		if jsonBytes, err := json.Marshal(response); err == nil {
 			w.Write(jsonBytes)
 		}
 	}
@@ -114,4 +152,20 @@ func coverStringValueToKind(strValue string, valueType reflect.Type) (value inte
 		return nil, errors.New("Type Not Support")
 	}
 	return
+}
+
+// GenerateSuccessResponse 成功执行返回结构
+func GenerateSuccessResponse(data interface{}) responseWrapper {
+	return responseWrapper{
+		Code: 0,
+		Data: data,
+	}
+}
+
+// GenerateErrorResponse 统一错误返回结构
+func GenerateErrorResponse(code int64, message string) responseWrapper {
+	return responseWrapper{
+		Code: code,
+		Data: message,
+	}
 }

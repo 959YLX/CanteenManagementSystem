@@ -1,7 +1,9 @@
 package main
 
-import "./route"
+import (
+	"geekylx.com/CanteenManagementSystemBackend/src/route"
+)
 
 func main() {
-	route.StartHttpServer("127.0.0.1", 9999)
+	route.StartHTTPServer("127.0.0.1", 9999)
 }
