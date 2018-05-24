@@ -9,7 +9,6 @@ type UserLogin struct {
 	gorm.Model
 	Account  string `gorm:"type varchar(10); unique;not null"`
 	Password string `gorm:"not null"`
-	Role     uint8  `gorm:"not null;default:0"`
 }
 
 // CreateUserLogin 创建用户登录关系表

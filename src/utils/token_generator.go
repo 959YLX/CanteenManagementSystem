@@ -5,11 +5,8 @@ import (
 )
 
 // GenerateToken 生成随机token
-func GenerateToken() (*string, error) {
-	u, err := uuid.NewV4()
-	if err != nil {
-		return nil, err
-	}
+func GenerateToken() *string {
+	u := uuid.NewV4()
 	stringUUID := u.String()
-	return &stringUUID, nil
+	return &stringUUID
 }

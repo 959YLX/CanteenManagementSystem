@@ -13,3 +13,9 @@ type GoodsInfo struct {
 	Price    float64 `gorm:"not null;default:0.0"`
 	Extra    []byte
 }
+
+// SaveGoods 保存商品信息
+func SaveGoods(goods GoodsInfo) error {
+	r := client.db.Create(goods)
+	return r.Error
+}

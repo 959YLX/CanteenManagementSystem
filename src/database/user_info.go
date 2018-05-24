@@ -9,6 +9,7 @@ type UserInfo struct {
 	gorm.Model
 	Account   string  `gorm:"type varchar(10);unique; not null"`
 	Type      uint8   `gorm:"default:0;not null"`
+	Role      uint64  `gorm:"not null;default:0"`
 	Remaining float64 `gorm:"default:0.0; not null"`
 	Extra     []byte
 }

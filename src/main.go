@@ -29,10 +29,10 @@ func main() {
 		userInfo := database.UserInfo{
 			Account: ROOT_ACCOUNT,
 			Type:    uint8(service.USER_TYPE_ROOT),
+			Role:    uint64(service.TypeDefaultRole[service.USER_TYPE_ROOT]),
 		}
 		userLogin := database.UserLogin{
 			Account:  ROOT_ACCOUNT,
-			Role:     255,
 			Password: *encodedPassword,
 		}
 		database.CreateUserInfo(userInfo)

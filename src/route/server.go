@@ -38,17 +38,21 @@ func StartHTTPServer(address string, port int) (err error) {
 
 func initHandlers() map[string]httpServiceHandler {
 	handlers := make(map[string]httpServiceHandler)
-	handlers["/login"] = httpServiceHandler{
+	handlers["/user/login"] = httpServiceHandler{
 		RequestParam:    loginRequest{},
 		ExecuteFunction: login,
 	}
-	handlers["/createUser"] = httpServiceHandler{
+	handlers["/user/create"] = httpServiceHandler{
 		RequestParam:    createUserRequest{},
 		ExecuteFunction: createUser,
 	}
-	handlers["/deleteUsers"] = httpServiceHandler{
+	handlers["/user/delete"] = httpServiceHandler{
 		RequestParam:    deleteUsersRequest{},
 		ExecuteFunction: deleteUsers,
+	}
+	handlers["/goods/add"] = httpServiceHandler{
+		RequestParam:    addGoodsRequest{},
+		ExecuteFunction: addGoods,
 	}
 	return handlers
 }

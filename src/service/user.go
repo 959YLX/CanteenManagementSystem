@@ -9,18 +9,23 @@ import (
 	"geekylx.com/CanteenManagementSystemBackend/src/utils"
 )
 
-type UserRole uint8
+type UserRole uint64
 type UserType uint8
 
 const (
 	USER_TYPE_ROOT          UserType = 1
 	USER_TYPE_ADMIN         UserType = 2
 	USER_TYPE_NORMAL        UserType = 3
+	USER_TYPE_CANTEEN       UserType = 4
 	TOKEN_TTL               int64    = int64(10 * 60)
 	ROLE_CREATE_NORMAL_USER UserRole = 1
 	ROLE_DELETE_NORMAL_USER UserRole = 1 << 1
 	ROLE_CREATE_ADMIN_USER  UserRole = 1 << 2
 	ROLE_DELETE_ADMIN_USER  UserRole = 1 << 3
+	ROLE_CREATE_CANTEEN     UserRole = 1 << 4
+	ROLE_DELETE_CANTEEN     UserRole = 1 << 5
+	ROLE_ADD_GOODS          UserRole = 1 << 6
+	ROLE_REMOVE_GOODS       UserRole = 1 << 7
 )
 
 var (
@@ -30,9 +35,10 @@ var (
 	ErrorRole       = errors.New("permission denied")
 	SystemError     = errors.New("system error")
 	TypeDefaultRole = map[UserType]UserRole{
-		USER_TYPE_ROOT:   UserRole(255),
-		USER_TYPE_ADMIN:  (ROLE_CREATE_NORMAL_USER | ROLE_DELETE_NORMAL_USER),
-		USER_TYPE_NORMAL: UserRole(0),
+		USER_TYPE_ROOT:    UserRole(255),
+		USER_TYPE_ADMIN:   (ROLE_CREATE_NORMAL_USER | ROLE_DELETE_NORMAL_USER),
+		USER_TYPE_NORMAL:  UserRole(0),
+		USER_TYPE_CANTEEN: (ROLE_ADD_GOODS | ROLE_REMOVE_GOODS),
 	}
 )
 
@@ -53,10 +59,7 @@ func Login(account string, password string) (token *string, accountType uint8, e
 	if storagePassword != *encodedPassword {
 		return nil, 0, ErrorPassword
 	}
-	token, err = utils.GenerateToken()
-	if token == nil || err != nil {
-		return nil, 0, err
-	}
+	token = utils.GenerateToken()
 	userInfo, err := database.GetUserInfoByAccount(account)
 	if userInfo == nil || err != nil {
 		return nil, 0, SystemError
@@ -74,16 +77,18 @@ func CreateUser(token string, password string, accountType uint8) (account *stri
 	if operatorAccount == nil || err != nil {
 		return nil, ErrorToken
 	}
-	userLogin, err := database.GetUserLoginByAccount(*operatorAccount)
-	if userLogin == nil || err != nil {
+	userInfo, err := database.GetUserInfoByAccount(*operatorAccount)
+	if userInfo == nil || err != nil {
 		return nil, err
 	}
 	hasPermission := false
 	switch UserType(accountType) {
 	case USER_TYPE_ADMIN:
-		hasPermission = ((UserRole(userLogin.Role) & ROLE_CREATE_ADMIN_USER) == ROLE_CREATE_ADMIN_USER)
+		hasPermission = ((UserRole(userInfo.Role) & ROLE_CREATE_ADMIN_USER) == ROLE_CREATE_ADMIN_USER)
 	case USER_TYPE_NORMAL:
-		hasPermission = ((UserRole(userLogin.Role) & ROLE_CREATE_NORMAL_USER) == ROLE_CREATE_NORMAL_USER)
+		hasPermission = ((UserRole(userInfo.Role) & ROLE_CREATE_NORMAL_USER) == ROLE_CREATE_NORMAL_USER)
+	case USER_TYPE_CANTEEN:
+		hasPermission = ((UserRole(userInfo.Role) & ROLE_CREATE_CANTEEN) == ROLE_CREATE_CANTEEN)
 	default:
 		return nil, IllegalArgument
 	}
@@ -101,11 +106,11 @@ func CreateUser(token string, password string, accountType uint8) (account *stri
 	newUserInfo := database.UserInfo{
 		Account:   *account,
 		Type:      accountType,
+		Role:      uint64(TypeDefaultRole[UserType(accountType)]),
 		Remaining: 0.0,
 	}
 	newUserLogin := database.UserLogin{
 		Account:  *account,
-		Role:     uint8(TypeDefaultRole[UserType(accountType)]),
 		Password: *encodedPassword,
 	}
 	database.CreateUserInfo(newUserInfo)
@@ -122,8 +127,8 @@ func DeleteUsers(token string, accounts []string) (deletedAccount map[string]boo
 	if operatorAccount == nil || err != nil {
 		return nil, ErrorToken
 	}
-	userLogin, err := database.GetUserLoginByAccount(*operatorAccount)
-	if userLogin == nil || err != nil {
+	operatorUserInfo, err := database.GetUserInfoByAccount(*operatorAccount)
+	if operatorUserInfo == nil || err != nil {
 		return nil, err
 	}
 	userInfos, err := database.GetUserInfosByAccounts(accounts)
@@ -138,11 +143,15 @@ func DeleteUsers(token string, accounts []string) (deletedAccount map[string]boo
 	for _, userInfo := range userInfos {
 		switch UserType(userInfo.Type) {
 		case USER_TYPE_NORMAL:
-			if UserRole(userLogin.Role)&ROLE_DELETE_NORMAL_USER == 0 {
+			if UserRole(operatorUserInfo.Role)&ROLE_DELETE_NORMAL_USER == 0 {
 				continue
 			}
 		case USER_TYPE_ADMIN:
-			if UserRole(userLogin.Role)&ROLE_DELETE_NORMAL_USER == 0 {
+			if UserRole(operatorUserInfo.Role)&ROLE_DELETE_NORMAL_USER == 0 {
+				continue
+			}
+		case USER_TYPE_CANTEEN:
+			if UserRole(operatorUserInfo.Role)&ROLE_DELETE_CANTEEN == 0 {
 				continue
 			}
 		case USER_TYPE_ROOT:
