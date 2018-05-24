@@ -24,7 +24,7 @@ const (
 )
 
 var (
-	ErrorPassword   = errors.New("password error")
+	ErrorPassword   = errors.New("account or password error")
 	IllegalArgument = errors.New("argument is illegal")
 	ErrorToken      = errors.New("not login or token is outtime")
 	ErrorRole       = errors.New("permission denied")
@@ -47,7 +47,7 @@ func Login(account string, password string) (token *string, accountType uint8, e
 	}
 	userLogin, err := database.GetUserLoginByAccount(account)
 	if err != nil || userLogin == nil {
-		return nil, 0, err
+		return nil, 0, ErrorPassword
 	}
 	storagePassword := userLogin.Password
 	if storagePassword != *encodedPassword {
@@ -59,7 +59,7 @@ func Login(account string, password string) (token *string, accountType uint8, e
 	}
 	userInfo, err := database.GetUserInfoByAccount(account)
 	if userInfo == nil || err != nil {
-		return nil, 0, err
+		return nil, 0, SystemError
 	}
 	if cache.TokenCache(*token, account, TOKEN_TTL) != nil {
 		return nil, 0, err
@@ -84,6 +84,8 @@ func CreateUser(token string, password string, accountType uint8) (account *stri
 		hasPermission = ((UserRole(userLogin.Role) & ROLE_CREATE_ADMIN_USER) == ROLE_CREATE_ADMIN_USER)
 	case USER_TYPE_NORMAL:
 		hasPermission = ((UserRole(userLogin.Role) & ROLE_CREATE_NORMAL_USER) == ROLE_CREATE_NORMAL_USER)
+	default:
+		return nil, IllegalArgument
 	}
 	if !hasPermission {
 		return nil, ErrorRole
@@ -108,5 +110,54 @@ func CreateUser(token string, password string, accountType uint8) (account *stri
 	}
 	database.CreateUserInfo(newUserInfo)
 	database.CreateUserLogin(newUserLogin)
+	return
+}
+
+// DeleteUsers 删除用户
+func DeleteUsers(token string, accounts []string) (deletedAccount map[string]bool, err error) {
+	if utils.IsStringEmpty(token) || len(accounts) == 0 {
+		return nil, IllegalArgument
+	}
+	operatorAccount, err := cache.GetAndRefreshToken(token, TOKEN_TTL)
+	if operatorAccount == nil || err != nil {
+		return nil, ErrorToken
+	}
+	userLogin, err := database.GetUserLoginByAccount(*operatorAccount)
+	if userLogin == nil || err != nil {
+		return nil, err
+	}
+	userInfos, err := database.GetUserInfosByAccounts(accounts)
+	if userInfos == nil || err != nil {
+		return nil, err
+	}
+	deletedAccount = make(map[string]bool)
+	for _, account := range accounts {
+		deletedAccount[account] = false
+	}
+	var deleteUsersAccount []string
+	for _, userInfo := range userInfos {
+		switch UserType(userInfo.Type) {
+		case USER_TYPE_NORMAL:
+			if UserRole(userLogin.Role)&ROLE_DELETE_NORMAL_USER == 0 {
+				continue
+			}
+		case USER_TYPE_ADMIN:
+			if UserRole(userLogin.Role)&ROLE_DELETE_NORMAL_USER == 0 {
+				continue
+			}
+		case USER_TYPE_ROOT:
+			continue
+		}
+		deletedAccount[userInfo.Account] = true
+		deleteUsersAccount = append(deleteUsersAccount, userInfo.Account)
+	}
+	tx := database.Transaction()
+	if err = database.DeleteUserInfosByAccountsInTransaction(tx, accounts); err != nil {
+		return nil, err
+	}
+	if err = database.DeleteUserLoginsByAccountsInTransaction(tx, accounts); err != nil {
+		return nil, err
+	}
+	tx.Commit()
 	return
 }

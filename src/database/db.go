@@ -28,7 +28,7 @@ func InitDatabase() (err error) {
 		panic(err)
 	}
 	client = &Client{
-		db: db,
+		db: db.Debug(),
 	}
 	db.AutoMigrate(&UserInfo{},
 		&UserLogin{},
@@ -39,4 +39,9 @@ func InitDatabase() (err error) {
 
 func (ref *Client) disconnect() error {
 	return ref.db.Close()
+}
+
+// Transaction 获取Transaction
+func Transaction() *gorm.DB {
+	return client.db.Begin()
 }

@@ -32,3 +32,25 @@ func GetUserInfoByAccount(account string) (*UserInfo, error) {
 	}
 	return userInfo, nil
 }
+
+// GetUserInfosByAccounts 通过account数组获取UserInfo数组
+func GetUserInfosByAccounts(accounts []string) (ref []*UserInfo, err error) {
+	r := client.db.Where("account in (?)", accounts).Find(&ref)
+	if r.Error != nil {
+		if r.Error == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, r.Error
+	}
+	return
+}
+
+// DeleteUserInfosByAccountsInTransaction 软删除用户信息(事务)
+func DeleteUserInfosByAccountsInTransaction(tx *gorm.DB, accounts []string) error {
+	r := tx.Where("account in (?)", accounts).Delete(&UserInfo{})
+	if r.Error != nil {
+		tx.Rollback()
+		return r.Error
+	}
+	return nil
+}

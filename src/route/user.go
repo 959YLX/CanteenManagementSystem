@@ -26,8 +26,8 @@ type createUserResponse struct {
 }
 
 type deleteUsersRequest struct {
-	Token   string
-	Account []string
+	Token    string
+	Accounts []string
 }
 
 type deleteUserResponse struct {
@@ -63,10 +63,16 @@ func createUser(req interface{}) responseWrapper {
 	})
 }
 
-func deleteUser(req interface{}) responseWrapper {
-	_, ok := req.(deleteUsersRequest)
+func deleteUsers(req interface{}) responseWrapper {
+	request, ok := req.(deleteUsersRequest)
 	if !ok {
 		return GenerateErrorResponse(PARAM_TYPE_ERROR_CODE, PARAM_TYPE_ERROR_MESSAGE)
 	}
-	return GenerateSuccessResponse(deleteUserResponse{})
+	deletedUsers, err := service.DeleteUsers(request.Token, request.Accounts)
+	if deletedUsers == nil || err != nil {
+		return GenerateErrorResponse(2, err.Error())
+	}
+	return GenerateSuccessResponse(deleteUserResponse{
+		Result: deletedUsers,
+	})
 }

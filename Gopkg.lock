@@ -8,6 +8,15 @@
   version = "v1.3"
 
 [[projects]]
+  name = "github.com/gomodule/redigo"
+  packages = [
+    "internal",
+    "redis"
+  ]
+  revision = "9c11da706d9b7902c6da69c592f75637793fe121"
+  version = "v2.0.0"
+
+[[projects]]
   name = "github.com/jinzhu/gorm"
   packages = [
     ".",
@@ -22,9 +31,15 @@
   packages = ["."]
   revision = "04140366298a54a039076d798123ffa108fff46c"
 
+[[projects]]
+  name = "github.com/satori/go.uuid"
+  packages = ["."]
+  revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
+  version = "v1.2.0"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "86c0b55b8dc91f40e321f0f9105833823d8da42e5cc0782665032c7c7a95d252"
+  inputs-digest = "469adba660fde53318b33552f9f8e856b76663d4e46a875919d0b7dc6cf78c65"
   solver-name = "gps-cdcl"
   solver-version = 1

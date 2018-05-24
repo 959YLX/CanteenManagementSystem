@@ -42,3 +42,13 @@ func GetMaxAccount() (*string, error) {
 	account := userLogin.Account
 	return &account, nil
 }
+
+// DeleteUserLoginsByAccountsInTransaction 软删除用户登录关系(事务)
+func DeleteUserLoginsByAccountsInTransaction(tx *gorm.DB, accounts []string) error {
+	r := tx.Where("account in (?)", accounts).Delete(&UserLogin{})
+	if r.Error != nil {
+		tx.Rollback()
+		return r.Error
+	}
+	return nil
+}

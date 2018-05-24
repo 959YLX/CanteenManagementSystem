@@ -46,9 +46,9 @@ func initHandlers() map[string]httpServiceHandler {
 		RequestParam:    createUserRequest{},
 		ExecuteFunction: createUser,
 	}
-	handlers["/deleteUser"] = httpServiceHandler{
+	handlers["/deleteUsers"] = httpServiceHandler{
 		RequestParam:    deleteUsersRequest{},
-		ExecuteFunction: deleteUser,
+		ExecuteFunction: deleteUsers,
 	}
 	return handlers
 }
