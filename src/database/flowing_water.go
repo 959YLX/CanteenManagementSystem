@@ -9,7 +9,7 @@ type FlowingWater struct {
 	gorm.Model
 	From    string `gorm:"type varchar(10);unique_index:unique_from_to"`
 	To      string `gorm:"type varchar(10);unique_index:unique_from_to"`
-	Type    int8   `gorm:"not null"`
-	Species int64
+	Type    uint8  `gorm:"not null"`
+	Species uint64
 	Extra   []byte
 }
