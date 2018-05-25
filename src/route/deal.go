@@ -10,7 +10,7 @@ type rechargeRequest struct {
 	Money   float64
 }
 
-type rechargeResponse struct {
+type dealResponse struct {
 	Success   bool    `json:"success"`
 	Remaining float64 `json:"remaining"`
 }
@@ -21,9 +21,10 @@ type consumeRequest struct {
 	GoodsID uint
 }
 
-type consumeResponse struct {
-	Success   bool    `json:"success"`
-	Remaining float64 `json:"remaining"`
+type transferAccountRequest struct {
+	Token     string
+	ToAccount string
+	Money     float64
 }
 
 func recharge(req interface{}) responseWrapper {
@@ -35,7 +36,7 @@ func recharge(req interface{}) responseWrapper {
 	if !success || err != nil {
 		return GenerateErrorResponse(2, err.Error())
 	}
-	return GenerateSuccessResponse(rechargeResponse{
+	return GenerateSuccessResponse(dealResponse{
 		Success:   success,
 		Remaining: remaining,
 	})
@@ -50,7 +51,22 @@ func consume(req interface{}) responseWrapper {
 	if !success || err != nil {
 		return GenerateErrorResponse(2, err.Error())
 	}
-	return GenerateSuccessResponse(consumeResponse{
+	return GenerateSuccessResponse(dealResponse{
+		Success:   success,
+		Remaining: remaining,
+	})
+}
+
+func transferAccount(req interface{}) responseWrapper {
+	request, ok := req.(transferAccountRequest)
+	if !ok {
+		return GenerateErrorResponse(PARAM_TYPE_ERROR_CODE, PARAM_TYPE_ERROR_MESSAGE)
+	}
+	success, remaining, err := service.TransferAccount(request.Token, request.ToAccount, request.Money)
+	if !success || err != nil {
+		return GenerateErrorResponse(2, err.Error())
+	}
+	return GenerateSuccessResponse(dealResponse{
 		Success:   success,
 		Remaining: remaining,
 	})

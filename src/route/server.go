@@ -62,6 +62,10 @@ func initHandlers() map[string]httpServiceHandler {
 		RequestParam:    consumeRequest{},
 		ExecuteFunction: consume,
 	}
+	handlers["/deal/transfer"] = httpServiceHandler{
+		RequestParam:    transferAccountRequest{},
+		ExecuteFunction: transferAccount,
+	}
 	return handlers
 }
 

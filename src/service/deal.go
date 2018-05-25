@@ -37,7 +37,7 @@ func Recharge(token string, account string, money float64) (bool, float64, error
 	}
 	userInfos, err := database.GetUserInfosByAccounts([]string{*operatorAccount, account})
 	if len(userInfos) != 2 {
-		return false, 0, err
+		return false, 0, ErrorTargetAccount
 	}
 	if UserRole(userInfos[*operatorAccount].Role)&ROLE_RECHARGE == 0 || UserRole(userInfos[account].Role)&ROLE_ACCEPT_RECHARGE == 0 {
 		return false, userInfos[account].Remaining, ErrorRole
@@ -87,6 +87,34 @@ func Consume(token string, fromAccount string, goodsID uint) (bool, float64, err
 		Extra:   extraPb,
 	}
 	return transaction(fromAccount, *operatorAccount, false, goodsInfo.Price, consumeRecord)
+}
+
+// TransferAccount 转账业务
+func TransferAccount(token string, toAccount string, money float64) (bool, float64, error) {
+	if utils.IsStringEmpty(token) || utils.IsStringEmpty(toAccount) || money < 0 {
+		return false, 0, IllegalArgument
+	}
+	operatorAccount, err := cache.GetAndRefreshToken(token, TOKEN_TTL)
+	if operatorAccount == nil || err != nil {
+		return false, 0, ErrorToken
+	}
+	if *operatorAccount == toAccount {
+		return false, 0, ErrorTargetAccount
+	}
+	userInfos, err := database.GetUserInfosByAccounts([]string{*operatorAccount, toAccount})
+	if userInfos == nil || err != nil {
+		return false, 0, ErrorTargetAccount
+	}
+	if UserRole(userInfos[*operatorAccount].Role)&ROLE_TRANSFER_ACCOUNT == 0 || UserRole(userInfos[toAccount].Role)&ROLE_ACCEPT_TRANSFER_ACCOUNT == 0 {
+		return false, 0, ErrorRole
+	}
+	transferAccountRecord := database.FlowingWater{
+		From:  *operatorAccount,
+		To:    toAccount,
+		Type:  uint8(TRANSACTION_TYPE_TRANSFER_ACCOUNT),
+		Money: money,
+	}
+	return transaction(*operatorAccount, toAccount, false, money, transferAccountRecord)
 }
 
 func transaction(fromAccount string, toAccount string, isRecharge bool, money float64, flowingWaterRecord database.FlowingWater) (bool, float64, error) {
