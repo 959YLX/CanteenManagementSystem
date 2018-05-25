@@ -54,6 +54,10 @@ func initHandlers() map[string]httpServiceHandler {
 		RequestParam:    addGoodsRequest{},
 		ExecuteFunction: addGoods,
 	}
+	handlers["/deal/recharge"] = httpServiceHandler{
+		RequestParam:    rechargeRequest{},
+		ExecuteFunction: recharge,
+	}
 	return handlers
 }
 

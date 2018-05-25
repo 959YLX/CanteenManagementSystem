@@ -39,4 +39,10 @@ func main() {
 		database.CreateUserLogin(userLogin)
 	}
 	route.StartHTTPServer("127.0.0.1", 9999)
+	signal := make(chan os.Signal, 1)
+	go func() {
+		<-signal
+		database.Disconnect()
+		os.Exit(0)
+	}()
 }

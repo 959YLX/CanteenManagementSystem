@@ -26,6 +26,7 @@ const (
 	ROLE_DELETE_CANTEEN     UserRole = 1 << 5
 	ROLE_ADD_GOODS          UserRole = 1 << 6
 	ROLE_REMOVE_GOODS       UserRole = 1 << 7
+	ROLE_RECHARGE           UserRole = 1 << 8
 )
 
 var (
@@ -35,8 +36,8 @@ var (
 	ErrorRole       = errors.New("permission denied")
 	SystemError     = errors.New("system error")
 	TypeDefaultRole = map[UserType]UserRole{
-		USER_TYPE_ROOT:    UserRole(255),
-		USER_TYPE_ADMIN:   (ROLE_CREATE_NORMAL_USER | ROLE_DELETE_NORMAL_USER),
+		USER_TYPE_ROOT:    UserRole(^ROLE_RECHARGE),
+		USER_TYPE_ADMIN:   (ROLE_CREATE_NORMAL_USER | ROLE_DELETE_NORMAL_USER | ROLE_RECHARGE),
 		USER_TYPE_NORMAL:  UserRole(0),
 		USER_TYPE_CANTEEN: (ROLE_ADD_GOODS | ROLE_REMOVE_GOODS),
 	}
@@ -140,7 +141,7 @@ func DeleteUsers(token string, accounts []string) (deletedAccount map[string]boo
 		deletedAccount[account] = false
 	}
 	var deleteUsersAccount []string
-	for _, userInfo := range userInfos {
+	for account, userInfo := range userInfos {
 		switch UserType(userInfo.Type) {
 		case USER_TYPE_NORMAL:
 			if UserRole(operatorUserInfo.Role)&ROLE_DELETE_NORMAL_USER == 0 {
@@ -157,8 +158,8 @@ func DeleteUsers(token string, accounts []string) (deletedAccount map[string]boo
 		case USER_TYPE_ROOT:
 			continue
 		}
-		deletedAccount[userInfo.Account] = true
-		deleteUsersAccount = append(deleteUsersAccount, userInfo.Account)
+		deletedAccount[account] = true
+		deleteUsersAccount = append(deleteUsersAccount, account)
 	}
 	tx := database.Transaction()
 	if err = database.DeleteUserInfosByAccountsInTransaction(tx, accounts); err != nil {
@@ -168,5 +169,6 @@ func DeleteUsers(token string, accounts []string) (deletedAccount map[string]boo
 		return nil, err
 	}
 	tx.Commit()
+	cache.RemoveTokens(accounts)
 	return
 }

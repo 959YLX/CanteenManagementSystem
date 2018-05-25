@@ -42,3 +42,12 @@ func GetAndRefreshToken(token string, ttl int64) (account *string, err error) {
 	}
 	return nil, err
 }
+
+// RemoveTokens 批量移除token
+func RemoveTokens(tokens []string) {
+	keys := make([]string, len(tokens))
+	for _, token := range tokens {
+		keys = append(keys, fmt.Sprintf("%s_%s", TOKEN_PREFIX, token))
+	}
+	client.Do("DEL", keys)
+}

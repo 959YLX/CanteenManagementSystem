@@ -37,8 +37,9 @@ func InitDatabase() (err error) {
 	return
 }
 
-func (ref *Client) disconnect() error {
-	return ref.db.Close()
+// Disconnect 关闭数据库连接
+func Disconnect() error {
+	return client.db.Close()
 }
 
 // Transaction 获取Transaction

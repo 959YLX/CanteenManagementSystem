@@ -15,7 +15,8 @@ type GoodsInfo struct {
 }
 
 // SaveGoods 保存商品信息
-func SaveGoods(goods GoodsInfo) error {
-	r := client.db.Create(goods)
-	return r.Error
+func SaveGoods(goods GoodsInfo) {
+	if client.db.NewRecord(goods) {
+		client.db.Create(&goods)
+	}
 }

@@ -21,7 +21,7 @@ func AddGoods(token string, species uint64, price float64, name string) (bool, e
 	if operatorUserInfo == nil || err != nil {
 		return false, SystemError
 	}
-	if UserRole(operatorUserInfo.Role)&ROLE_ADD_GOODS == 0 {
+	if UserType(operatorUserInfo.Type) != USER_TYPE_CANTEEN || UserRole(operatorUserInfo.Role)&ROLE_ADD_GOODS == 0 {
 		return false, ErrorRole
 	}
 	extraPb, err := proto.Marshal(&pb.GoodsInfoExtra{
@@ -36,9 +36,6 @@ func AddGoods(token string, species uint64, price float64, name string) (bool, e
 		Price:    price,
 		Extra:    extraPb,
 	}
-	err = database.SaveGoods(goods)
-	if err != nil {
-		return false, err
-	}
+	database.SaveGoods(goods)
 	return true, nil
 }
