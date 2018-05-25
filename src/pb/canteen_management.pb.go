@@ -29,7 +29,7 @@ func (m *GoodsInfoExtra) Reset()         { *m = GoodsInfoExtra{} }
 func (m *GoodsInfoExtra) String() string { return proto.CompactTextString(m) }
 func (*GoodsInfoExtra) ProtoMessage()    {}
 func (*GoodsInfoExtra) Descriptor() ([]byte, []int) {
-	return fileDescriptor_canteen_management_307db76e7478c8cf, []int{0}
+	return fileDescriptor_canteen_management_d6fd3c1313a31df2, []int{0}
 }
 func (m *GoodsInfoExtra) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GoodsInfoExtra.Unmarshal(m, b)
@@ -56,20 +56,61 @@ func (m *GoodsInfoExtra) GetName() string {
 	return ""
 }
 
+type FlowingWaterExtra struct {
+	GoodsID              uint64   `protobuf:"varint,1,opt,name=goodsID" json:"goodsID,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *FlowingWaterExtra) Reset()         { *m = FlowingWaterExtra{} }
+func (m *FlowingWaterExtra) String() string { return proto.CompactTextString(m) }
+func (*FlowingWaterExtra) ProtoMessage()    {}
+func (*FlowingWaterExtra) Descriptor() ([]byte, []int) {
+	return fileDescriptor_canteen_management_d6fd3c1313a31df2, []int{1}
+}
+func (m *FlowingWaterExtra) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_FlowingWaterExtra.Unmarshal(m, b)
+}
+func (m *FlowingWaterExtra) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_FlowingWaterExtra.Marshal(b, m, deterministic)
+}
+func (dst *FlowingWaterExtra) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FlowingWaterExtra.Merge(dst, src)
+}
+func (m *FlowingWaterExtra) XXX_Size() int {
+	return xxx_messageInfo_FlowingWaterExtra.Size(m)
+}
+func (m *FlowingWaterExtra) XXX_DiscardUnknown() {
+	xxx_messageInfo_FlowingWaterExtra.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_FlowingWaterExtra proto.InternalMessageInfo
+
+func (m *FlowingWaterExtra) GetGoodsID() uint64 {
+	if m != nil {
+		return m.GoodsID
+	}
+	return 0
+}
+
 func init() {
 	proto.RegisterType((*GoodsInfoExtra)(nil), "GoodsInfoExtra")
+	proto.RegisterType((*FlowingWaterExtra)(nil), "FlowingWaterExtra")
 }
 
 func init() {
-	proto.RegisterFile("canteen_management.proto", fileDescriptor_canteen_management_307db76e7478c8cf)
+	proto.RegisterFile("canteen_management.proto", fileDescriptor_canteen_management_d6fd3c1313a31df2)
 }
 
-var fileDescriptor_canteen_management_307db76e7478c8cf = []byte{
-	// 90 bytes of a gzipped FileDescriptorProto
+var fileDescriptor_canteen_management_d6fd3c1313a31df2 = []byte{
+	// 121 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x92, 0x48, 0x4e, 0xcc, 0x2b,
 	0x49, 0x4d, 0xcd, 0x8b, 0xcf, 0x4d, 0xcc, 0x4b, 0x4c, 0x4f, 0xcd, 0x4d, 0xcd, 0x2b, 0xd1, 0x2b,
 	0x28, 0xca, 0x2f, 0xc9, 0x57, 0x52, 0xe1, 0xe2, 0x73, 0xcf, 0xcf, 0x4f, 0x29, 0xf6, 0xcc, 0x4b,
 	0xcb, 0x77, 0xad, 0x28, 0x29, 0x4a, 0x14, 0x12, 0xe2, 0x62, 0xc9, 0x4b, 0xcc, 0x4d, 0x95, 0x60,
-	0x54, 0x60, 0xd4, 0xe0, 0x0c, 0x02, 0xb3, 0x93, 0xd8, 0xc0, 0x8a, 0x8d, 0x01, 0x01, 0x00, 0x00,
-	0xff, 0xff, 0xe8, 0x55, 0x53, 0xd0, 0x48, 0x00, 0x00, 0x00,
+	0x54, 0x60, 0xd4, 0xe0, 0x0c, 0x02, 0xb3, 0x95, 0x74, 0xb9, 0x04, 0xdd, 0x72, 0xf2, 0xcb, 0x33,
+	0xf3, 0xd2, 0xc3, 0x13, 0x4b, 0x52, 0x8b, 0x20, 0x0a, 0x25, 0xb8, 0xd8, 0xd3, 0xc1, 0x5a, 0x5d,
+	0xc0, 0x6a, 0x59, 0x82, 0x60, 0xdc, 0x24, 0x36, 0xb0, 0xd9, 0xc6, 0x80, 0x00, 0x00, 0x00, 0xff,
+	0xff, 0xa7, 0xec, 0x3a, 0xc8, 0x77, 0x00, 0x00, 0x00,
 }

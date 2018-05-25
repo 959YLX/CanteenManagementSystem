@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/signal"
 
 	"geekylx.com/CanteenManagementSystemBackend/src/utils"
 
@@ -29,7 +30,7 @@ func main() {
 		userInfo := database.UserInfo{
 			Account: ROOT_ACCOUNT,
 			Type:    uint8(service.USER_TYPE_ROOT),
-			Role:    uint64(service.TypeDefaultRole[service.USER_TYPE_ROOT]),
+			Role:    uint32(service.TypeDefaultRole[service.USER_TYPE_ROOT]),
 		}
 		userLogin := database.UserLogin{
 			Account:  ROOT_ACCOUNT,
@@ -38,11 +39,15 @@ func main() {
 		database.CreateUserInfo(userInfo)
 		database.CreateUserLogin(userLogin)
 	}
-	route.StartHTTPServer("127.0.0.1", 9999)
-	signal := make(chan os.Signal, 1)
+	stopSignals := make(chan os.Signal, 1)
+	// cleanDoneSignal := make(chan bool, 1)
+	signal.Notify(stopSignals, os.Interrupt)
 	go func() {
-		<-signal
-		database.Disconnect()
-		os.Exit(0)
+		for range stopSignals {
+			database.Disconnect()
+			cache.CloseCache()
+			os.Exit(0)
+		}
 	}()
+	route.StartHTTPServer("127.0.0.1", 9999)
 }

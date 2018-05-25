@@ -9,24 +9,29 @@ import (
 	"geekylx.com/CanteenManagementSystemBackend/src/utils"
 )
 
-type UserRole uint64
+type UserRole uint32
 type UserType uint8
 
 const (
-	USER_TYPE_ROOT          UserType = 1
-	USER_TYPE_ADMIN         UserType = 2
-	USER_TYPE_NORMAL        UserType = 3
-	USER_TYPE_CANTEEN       UserType = 4
-	TOKEN_TTL               int64    = int64(10 * 60)
-	ROLE_CREATE_NORMAL_USER UserRole = 1
-	ROLE_DELETE_NORMAL_USER UserRole = 1 << 1
-	ROLE_CREATE_ADMIN_USER  UserRole = 1 << 2
-	ROLE_DELETE_ADMIN_USER  UserRole = 1 << 3
-	ROLE_CREATE_CANTEEN     UserRole = 1 << 4
-	ROLE_DELETE_CANTEEN     UserRole = 1 << 5
-	ROLE_ADD_GOODS          UserRole = 1 << 6
-	ROLE_REMOVE_GOODS       UserRole = 1 << 7
-	ROLE_RECHARGE           UserRole = 1 << 8
+	USER_TYPE_ROOT               UserType = 1
+	USER_TYPE_ADMIN              UserType = 2
+	USER_TYPE_NORMAL             UserType = 3
+	USER_TYPE_CANTEEN            UserType = 4
+	TOKEN_TTL                    int64    = int64(10 * 60)
+	ROLE_CREATE_NORMAL_USER      UserRole = 1
+	ROLE_DELETE_NORMAL_USER      UserRole = 1 << 1
+	ROLE_CREATE_ADMIN_USER       UserRole = 1 << 2
+	ROLE_DELETE_ADMIN_USER       UserRole = 1 << 3
+	ROLE_CREATE_CANTEEN          UserRole = 1 << 4
+	ROLE_DELETE_CANTEEN          UserRole = 1 << 5
+	ROLE_ADD_GOODS               UserRole = 1 << 6
+	ROLE_REMOVE_GOODS            UserRole = 1 << 7
+	ROLE_RECHARGE                UserRole = 1 << 8
+	ROLE_ACCEPT_RECHARGE         UserRole = 1 << 9
+	ROLE_CONSUME                 UserRole = 1 << 10
+	ROLE_ACCEPT_CONSUME          UserRole = 1 << 11
+	ROLE_TRANSFER_ACCOUNT        UserRole = 1 << 12
+	ROLE_ACCEPT_TRANSFER_ACCOUNT UserRole = 1 << 13
 )
 
 var (
@@ -36,10 +41,10 @@ var (
 	ErrorRole       = errors.New("permission denied")
 	SystemError     = errors.New("system error")
 	TypeDefaultRole = map[UserType]UserRole{
-		USER_TYPE_ROOT:    UserRole(^ROLE_RECHARGE),
+		USER_TYPE_ROOT:    UserRole(^(ROLE_RECHARGE | ROLE_ACCEPT_RECHARGE | ROLE_CONSUME | ROLE_ACCEPT_CONSUME | ROLE_TRANSFER_ACCOUNT | ROLE_ACCEPT_TRANSFER_ACCOUNT)),
 		USER_TYPE_ADMIN:   (ROLE_CREATE_NORMAL_USER | ROLE_DELETE_NORMAL_USER | ROLE_RECHARGE),
-		USER_TYPE_NORMAL:  UserRole(0),
-		USER_TYPE_CANTEEN: (ROLE_ADD_GOODS | ROLE_REMOVE_GOODS),
+		USER_TYPE_NORMAL:  UserRole(ROLE_ACCEPT_RECHARGE | ROLE_CONSUME | ROLE_TRANSFER_ACCOUNT | ROLE_ACCEPT_TRANSFER_ACCOUNT),
+		USER_TYPE_CANTEEN: (ROLE_ADD_GOODS | ROLE_REMOVE_GOODS | ROLE_ACCEPT_CONSUME),
 	}
 )
 
@@ -107,7 +112,7 @@ func CreateUser(token string, password string, accountType uint8) (account *stri
 	newUserInfo := database.UserInfo{
 		Account:   *account,
 		Type:      accountType,
-		Role:      uint64(TypeDefaultRole[UserType(accountType)]),
+		Role:      uint32(TypeDefaultRole[UserType(accountType)]),
 		Remaining: 0.0,
 	}
 	newUserLogin := database.UserLogin{

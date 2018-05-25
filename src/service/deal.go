@@ -4,6 +4,9 @@ import (
 	"errors"
 	"sync"
 
+	"geekylx.com/CanteenManagementSystemBackend/src/pb"
+	"github.com/golang/protobuf/proto"
+
 	"geekylx.com/CanteenManagementSystemBackend/src/cache"
 	"geekylx.com/CanteenManagementSystemBackend/src/database"
 	"geekylx.com/CanteenManagementSystemBackend/src/utils"
@@ -19,7 +22,7 @@ type TransactionType uint8
 
 const (
 	TRANSACTION_TYPE_RECHARGE         TransactionType = 1
-	TRANSACTION_TYPE_PAY              TransactionType = 1 << 1
+	TRANSACTION_TYPE_CONSUME          TransactionType = 1 << 1
 	TRANSACTION_TYPE_TRANSFER_ACCOUNT TransactionType = 1 << 2
 )
 
@@ -32,12 +35,12 @@ func Recharge(token string, account string, money float64) (bool, float64, error
 	if operatorAccount == nil || err != nil {
 		return false, 0, ErrorToken
 	}
-	operatorUserInfo, err := database.GetUserInfoByAccount(*operatorAccount)
-	if operatorUserInfo == nil || err != nil {
-		return false, operatorUserInfo.Remaining, err
+	userInfos, err := database.GetUserInfosByAccounts([]string{*operatorAccount, account})
+	if len(userInfos) != 2 {
+		return false, 0, err
 	}
-	if UserRole(operatorUserInfo.Role)&ROLE_RECHARGE == 0 {
-		return false, operatorUserInfo.Remaining, ErrorRole
+	if UserRole(userInfos[*operatorAccount].Role)&ROLE_RECHARGE == 0 || UserRole(userInfos[account].Role)&ROLE_ACCEPT_RECHARGE == 0 {
+		return false, userInfos[account].Remaining, ErrorRole
 	}
 	rechargeRecord := database.FlowingWater{
 		From:  *operatorAccount,
@@ -46,6 +49,44 @@ func Recharge(token string, account string, money float64) (bool, float64, error
 		Money: money,
 	}
 	return transaction(*operatorAccount, account, true, money, rechargeRecord)
+}
+
+// Consume 消费接口
+func Consume(token string, fromAccount string, goodsID uint) (bool, float64, error) {
+	if utils.IsStringEmpty(token) || utils.IsStringEmpty(fromAccount) {
+		return false, 0, IllegalArgument
+	}
+	operatorAccount, err := cache.GetAndRefreshToken(token, TOKEN_TTL)
+	if operatorAccount == nil || err != nil {
+		return false, 0, ErrorToken
+	}
+	userInfos, err := database.GetUserInfosByAccounts([]string{*operatorAccount, fromAccount})
+	if len(userInfos) != 2 {
+		return false, 0, ErrorTargetAccount
+	}
+	fromRemaining := userInfos[fromAccount].Remaining
+	if UserRole(userInfos[fromAccount].Role)&ROLE_CONSUME == 0 || UserRole(userInfos[*operatorAccount].Role)&ROLE_ACCEPT_CONSUME == 0 {
+		return false, fromRemaining, ErrorRole
+	}
+	goodsInfo, err := database.GetGoodsInfo(goodsID)
+	if goodsInfo == nil || goodsInfo.BelongTo != *operatorAccount || err != nil {
+		return false, fromRemaining, IllegalArgument
+	}
+	extraPb, err := proto.Marshal(&pb.FlowingWaterExtra{
+		GoodsID: uint64(goodsID),
+	})
+	if err != nil {
+		return false, fromRemaining, err
+	}
+	consumeRecord := database.FlowingWater{
+		From:    fromAccount,
+		To:      *operatorAccount,
+		Type:    uint8(TRANSACTION_TYPE_CONSUME),
+		Money:   goodsInfo.Price,
+		Species: goodsInfo.Species,
+		Extra:   extraPb,
+	}
+	return transaction(fromAccount, *operatorAccount, false, goodsInfo.Price, consumeRecord)
 }
 
 func transaction(fromAccount string, toAccount string, isRecharge bool, money float64, flowingWaterRecord database.FlowingWater) (bool, float64, error) {
@@ -82,5 +123,5 @@ func transaction(fromAccount string, toAccount string, isRecharge bool, money fl
 	if isRecharge {
 		return true, toRemaining, nil
 	}
-	return true, fromRemaining, nil
+	return true, fromRemaining - money, nil
 }

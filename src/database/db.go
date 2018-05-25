@@ -34,11 +34,13 @@ func InitDatabase() (err error) {
 		&UserLogin{},
 		&GoodsInfo{},
 		&FlowingWater{})
+	fmt.Println("init database")
 	return
 }
 
 // Disconnect 关闭数据库连接
 func Disconnect() error {
+	fmt.Println("close database")
 	return client.db.Close()
 }
 

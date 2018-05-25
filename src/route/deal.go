@@ -15,6 +15,17 @@ type rechargeResponse struct {
 	Remaining float64 `json:"remaining"`
 }
 
+type consumeRequest struct {
+	Token   string
+	Account string
+	GoodsID uint
+}
+
+type consumeResponse struct {
+	Success   bool    `json:"success"`
+	Remaining float64 `json:"remaining"`
+}
+
 func recharge(req interface{}) responseWrapper {
 	request, ok := req.(rechargeRequest)
 	if !ok {
@@ -25,6 +36,21 @@ func recharge(req interface{}) responseWrapper {
 		return GenerateErrorResponse(2, err.Error())
 	}
 	return GenerateSuccessResponse(rechargeResponse{
+		Success:   success,
+		Remaining: remaining,
+	})
+}
+
+func consume(req interface{}) responseWrapper {
+	request, ok := req.(consumeRequest)
+	if !ok {
+		return GenerateErrorResponse(PARAM_TYPE_ERROR_CODE, PARAM_TYPE_ERROR_MESSAGE)
+	}
+	success, remaining, err := service.Consume(request.Token, request.Account, request.GoodsID)
+	if !success || err != nil {
+		return GenerateErrorResponse(2, err.Error())
+	}
+	return GenerateSuccessResponse(consumeResponse{
 		Success:   success,
 		Remaining: remaining,
 	})

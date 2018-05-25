@@ -17,7 +17,14 @@ var client redis.Conn
 // InitRedisClient 初始化redis连接
 func InitRedisClient() (err error) {
 	client, err = redis.Dial("tcp", fmt.Sprintf("%s:%d", REDIS_ADDRESS, REDIS_PORT))
+	fmt.Println("init redis cache")
 	return
+}
+
+// CloseCache 关闭redis缓存
+func CloseCache() error {
+	fmt.Println("close redis cache")
+	return client.Close()
 }
 
 // TokenCache 缓存token并设置相应的ttl

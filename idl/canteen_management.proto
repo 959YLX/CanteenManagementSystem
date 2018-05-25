@@ -3,3 +3,7 @@ syntax = "proto3";
 message GoodsInfoExtra {
     string name = 1;
 }
+
+message FlowingWaterExtra {
+    uint64 goodsID = 1;
+}
