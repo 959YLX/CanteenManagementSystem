@@ -19,6 +19,7 @@ type createUserRequest struct {
 	Token       string
 	Password    string
 	AccountType uint8
+	Name        string
 }
 
 type createUserResponse struct {
@@ -32,6 +33,19 @@ type deleteUsersRequest struct {
 
 type deleteUserResponse struct {
 	Result map[string]bool `json:"result"`
+}
+
+type selectRecordRequest struct {
+	Token     string
+	StartTime int64
+	EndTime   int64
+	Species   uint8
+}
+
+type selectRecordResponse struct {
+	TotalIncome float64
+	TotalPay    float64
+	Detail      interface{}
 }
 
 func login(req interface{}) responseWrapper {
@@ -54,7 +68,7 @@ func createUser(req interface{}) responseWrapper {
 	if !ok {
 		return GenerateErrorResponse(PARAM_TYPE_ERROR_CODE, PARAM_TYPE_ERROR_MESSAGE)
 	}
-	account, err := service.CreateUser(request.Token, request.Password, request.AccountType)
+	account, err := service.CreateUser(request.Token, request.Password, request.AccountType, request.Name)
 	if account == nil || err != nil {
 		return GenerateErrorResponse(2, err.Error())
 	}
@@ -74,5 +88,21 @@ func deleteUsers(req interface{}) responseWrapper {
 	}
 	return GenerateSuccessResponse(deleteUserResponse{
 		Result: deletedUsers,
+	})
+}
+
+func selectRecord(req interface{}) responseWrapper {
+	request, ok := req.(selectRecordRequest)
+	if !ok {
+		return GenerateErrorResponse(PARAM_TYPE_ERROR_CODE, PARAM_TYPE_ERROR_MESSAGE)
+	}
+	totalIncome, totalPay, detail, err := service.SelectRecord(request.Token, request.StartTime, request.EndTime, request.Species)
+	if err != nil {
+		return GenerateErrorResponse(2, err.Error())
+	}
+	return GenerateSuccessResponse(selectRecordResponse{
+		TotalIncome: totalIncome,
+		TotalPay:    totalPay,
+		Detail:      detail,
 	})
 }

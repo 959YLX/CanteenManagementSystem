@@ -27,6 +27,10 @@ type transferAccountRequest struct {
 	Money     float64
 }
 
+type selectFlowingWaterRequest struct {
+	Token string
+}
+
 func recharge(req interface{}) responseWrapper {
 	request, ok := req.(rechargeRequest)
 	if !ok {

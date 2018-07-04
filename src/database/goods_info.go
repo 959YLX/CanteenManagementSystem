@@ -29,3 +29,18 @@ func GetGoodsInfo(goodsID uint) (*GoodsInfo, error) {
 	}
 	return result, nil
 }
+
+// GetGoodsList 获取商品列表,belongTo传nil则搜索所有商品
+func GetGoodsList(belongTo *string) ([]*GoodsInfo, error) {
+	var goods []*GoodsInfo
+	var r *gorm.DB
+	if belongTo == nil {
+		r = client.db.Find(&goods)
+	} else {
+		r = client.db.Where("belong_to = ?", belongTo).Find(&goods)
+	}
+	if r.Error != nil {
+		return nil, r.Error
+	}
+	return goods, nil
+}

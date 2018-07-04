@@ -24,3 +24,14 @@ func RecordInTransaction(tx *gorm.DB, flowingWater FlowingWater) error {
 	}
 	return nil
 }
+
+func SelectFlowingWater(account string, startTime int64, endTime int64, transactionType []uint8) (ref []*FlowingWater, err error) {
+	r := client.db.Select("(from = ? OR to = ?) AND (create_time BETWEEN ? AND ?) AND (type in ?)", account, account, startTime, endTime, transactionType).Scan(ref)
+	if r.Error != nil {
+		if r.Error == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, r.Error
+	}
+	return
+}

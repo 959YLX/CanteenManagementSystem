@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	"geekylx.com/CanteenManagementSystemBackend/src/utils"
 )
 
 const (
@@ -66,6 +68,14 @@ func initHandlers() map[string]httpServiceHandler {
 		RequestParam:    transferAccountRequest{},
 		ExecuteFunction: transferAccount,
 	}
+	handlers["/goods/list"] = httpServiceHandler{
+		RequestParam:    goodsListRequest{},
+		ExecuteFunction: goodsList,
+	}
+	handlers["/user/select"] = httpServiceHandler{
+		RequestParam:    selectRecordRequest{},
+		ExecuteFunction: selectRecord,
+	}
 	return handlers
 }
 
@@ -82,6 +92,9 @@ func wrapper(req interface{}, exec func(interface{}) responseWrapper) func(w htt
 		for paramName, paramType := range requestParamsMap {
 			formStringValue := r.FormValue(paramName)
 			fmt.Println("str ", paramName, " = ", formStringValue)
+			if utils.IsStringEmpty(formStringValue) {
+				continue
+			}
 			if coverValue, err := coverStringValueToKind(formStringValue, paramType); err == nil {
 				fmt.Println(paramName, " = ", coverValue)
 				newStruct.FieldByName(paramName).Set(reflect.ValueOf(coverValue))

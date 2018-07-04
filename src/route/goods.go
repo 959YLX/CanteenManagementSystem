@@ -15,6 +15,14 @@ type addGoodsResponse struct {
 	Success bool `json:"success"`
 }
 
+type goodsListRequest struct {
+	Token string
+}
+
+type goodsListResponse struct {
+	Goods []*service.GoodsInfo
+}
+
 func addGoods(req interface{}) responseWrapper {
 	request, ok := req.(addGoodsRequest)
 	if !ok {
@@ -26,5 +34,19 @@ func addGoods(req interface{}) responseWrapper {
 	}
 	return GenerateSuccessResponse(addGoodsResponse{
 		Success: success,
+	})
+}
+
+func goodsList(req interface{}) responseWrapper {
+	request, ok := req.(goodsListRequest)
+	if !ok {
+		return GenerateErrorResponse(PARAM_TYPE_ERROR_CODE, PARAM_TYPE_ERROR_MESSAGE)
+	}
+	serviceGoodsList, err := service.GetGoodsList(request.Token)
+	if serviceGoodsList == nil || err != nil {
+		return GenerateErrorResponse(2, err.Error())
+	}
+	return GenerateSuccessResponse(goodsListResponse{
+		Goods: serviceGoodsList,
 	})
 }

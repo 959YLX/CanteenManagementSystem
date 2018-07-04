@@ -7,3 +7,7 @@ message GoodsInfoExtra {
 message FlowingWaterExtra {
     uint64 goodsID = 1;
 }
+
+message UserInfoExtra {
+    string name = 1;
+}

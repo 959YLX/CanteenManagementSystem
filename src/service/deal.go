@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"sync"
+	"time"
 
 	"geekylx.com/CanteenManagementSystemBackend/src/pb"
 	"github.com/golang/protobuf/proto"
@@ -25,6 +26,20 @@ const (
 	TRANSACTION_TYPE_CONSUME          TransactionType = 1 << 1
 	TRANSACTION_TYPE_TRANSFER_ACCOUNT TransactionType = 1 << 2
 )
+
+func Select(account string, startTime int64, endTime int64, transactionType []TransactionType) (records []*database.FlowingWater, err error) {
+	if endTime == 0 {
+		endTime = time.Now().Unix()
+	}
+	if endTime < startTime {
+		endTime = startTime
+	}
+	dbTransactionType := make([]uint8, len(transactionType))
+	for _, t := range transactionType {
+		dbTransactionType = append(dbTransactionType, uint8(t))
+	}
+	return database.SelectFlowingWater(account, startTime, endTime, dbTransactionType)
+}
 
 // Recharge 充值
 func Recharge(token string, account string, money float64) (bool, float64, error) {

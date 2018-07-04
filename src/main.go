@@ -4,6 +4,9 @@ import (
 	"os"
 	"os/signal"
 
+	"geekylx.com/CanteenManagementSystemBackend/src/pb"
+	"github.com/golang/protobuf/proto"
+
 	"geekylx.com/CanteenManagementSystemBackend/src/utils"
 
 	"geekylx.com/CanteenManagementSystemBackend/src/service"
@@ -14,7 +17,9 @@ import (
 )
 
 const (
-	ROOT_ACCOUNT = "0000000000"
+	ROOT_ACCOUNT      = "0000000000"
+	SERVER_IP_ADDRESS = "192.168.43.227"
+	SERVER_PORT       = 9999
 )
 
 func main() {
@@ -36,6 +41,11 @@ func main() {
 			Account:  ROOT_ACCOUNT,
 			Password: *encodedPassword,
 		}
+		if extra, err := proto.Marshal(&pb.UserInfoExtra{
+			Name: "root",
+		}); err == nil {
+			userInfo.Extra = extra
+		}
 		database.CreateUserInfo(userInfo)
 		database.CreateUserLogin(userLogin)
 	}
@@ -49,5 +59,5 @@ func main() {
 			os.Exit(0)
 		}
 	}()
-	route.StartHTTPServer("127.0.0.1", 9999)
+	route.StartHTTPServer(SERVER_IP_ADDRESS, SERVER_PORT)
 }

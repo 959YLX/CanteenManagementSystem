@@ -2,6 +2,10 @@ package service
 
 import (
 	"errors"
+	"time"
+
+	"geekylx.com/CanteenManagementSystemBackend/src/pb"
+	"github.com/golang/protobuf/proto"
 
 	"geekylx.com/CanteenManagementSystemBackend/src/cache"
 
@@ -32,6 +36,7 @@ const (
 	ROLE_ACCEPT_CONSUME          UserRole = 1 << 11
 	ROLE_TRANSFER_ACCOUNT        UserRole = 1 << 12
 	ROLE_ACCEPT_TRANSFER_ACCOUNT UserRole = 1 << 13
+	ROLE_GET_GOODS_LIST          UserRole = 1 << 14
 )
 
 var (
@@ -43,10 +48,27 @@ var (
 	TypeDefaultRole = map[UserType]UserRole{
 		USER_TYPE_ROOT:    UserRole(^(ROLE_RECHARGE | ROLE_ACCEPT_RECHARGE | ROLE_CONSUME | ROLE_ACCEPT_CONSUME | ROLE_TRANSFER_ACCOUNT | ROLE_ACCEPT_TRANSFER_ACCOUNT)),
 		USER_TYPE_ADMIN:   (ROLE_CREATE_NORMAL_USER | ROLE_DELETE_NORMAL_USER | ROLE_RECHARGE),
-		USER_TYPE_NORMAL:  UserRole(ROLE_ACCEPT_RECHARGE | ROLE_CONSUME | ROLE_TRANSFER_ACCOUNT | ROLE_ACCEPT_TRANSFER_ACCOUNT),
-		USER_TYPE_CANTEEN: (ROLE_ADD_GOODS | ROLE_REMOVE_GOODS | ROLE_ACCEPT_CONSUME),
+		USER_TYPE_NORMAL:  UserRole(ROLE_ACCEPT_RECHARGE | ROLE_CONSUME | ROLE_TRANSFER_ACCOUNT | ROLE_ACCEPT_TRANSFER_ACCOUNT | ROLE_GET_GOODS_LIST),
+		USER_TYPE_CANTEEN: (ROLE_ADD_GOODS | ROLE_REMOVE_GOODS | ROLE_ACCEPT_CONSUME | ROLE_GET_GOODS_LIST),
 	}
 )
+
+type userRecordDetail struct {
+	Time    time.Time `json:"time"`
+	Type    uint8     `json:"type"`
+	Account string    `json:"account"`
+	Species uint64    `json:"species"`
+	GoodsID uint64    `json:"goods"`
+	Money   float64   `json:"money"`
+}
+
+type canteenRecordDetail struct {
+	Time    time.Time `json:"time"`
+	Account string    `json:"account"`
+	Species uint64    `json:"species"`
+	Money   float64   `json:"money"`
+	GoodsID uint64    `json:"goods"`
+}
 
 // Login 登录业务逻辑
 func Login(account string, password string) (token *string, accountType uint8, err error) {
@@ -78,7 +100,7 @@ func Login(account string, password string) (token *string, accountType uint8, e
 }
 
 // CreateUser 创建用户
-func CreateUser(token string, password string, accountType uint8) (account *string, err error) {
+func CreateUser(token string, password string, accountType uint8, name string) (account *string, err error) {
 	operatorAccount, err := cache.GetAndRefreshToken(token, TOKEN_TTL)
 	if operatorAccount == nil || err != nil {
 		return nil, ErrorToken
@@ -118,6 +140,11 @@ func CreateUser(token string, password string, accountType uint8) (account *stri
 	newUserLogin := database.UserLogin{
 		Account:  *account,
 		Password: *encodedPassword,
+	}
+	if extra, err := proto.Marshal(&pb.UserInfoExtra{
+		Name: name,
+	}); err == nil {
+		newUserInfo.Extra = extra
 	}
 	database.CreateUserInfo(newUserInfo)
 	database.CreateUserLogin(newUserLogin)
@@ -175,5 +202,94 @@ func DeleteUsers(token string, accounts []string) (deletedAccount map[string]boo
 	}
 	tx.Commit()
 	cache.RemoveTokens(accounts)
+	return
+}
+
+// SelectRecord 查询交易记录
+func SelectRecord(token string, startTime int64, endTime int64, species uint8) (totalIncome float64, totalPay float64, details interface{}, err error) {
+	if utils.IsStringEmpty(token) {
+		return 0, 0, nil, IllegalArgument
+	}
+	operatorAccount, err := cache.GetAndRefreshToken(token, TOKEN_TTL)
+	if operatorAccount == nil || err != nil {
+		return 0, 0, nil, ErrorToken
+	}
+	operatorUserInfo, err := database.GetUserInfoByAccount(*operatorAccount)
+	if operatorUserInfo == nil || err != nil {
+		return 0, 0, nil, err
+	}
+	if operatorUserInfo.Type == uint8(USER_TYPE_NORMAL) {
+		return selectUserRecord(*operatorAccount)
+	} else if operatorUserInfo.Type == uint8(USER_TYPE_CANTEEN) {
+		totalIncome, details, err := selectCanteenRecord(*operatorAccount)
+		totalPay = 0
+		return totalIncome, totalPay, details, err
+	}
+	return 0, 0, nil, ErrorRole
+}
+
+func selectUserRecord(account string) (totalIncome float64, totalPay float64, details []*userRecordDetail, err error) {
+	records, err := Select(account, 0, 0, []TransactionType{TRANSACTION_TYPE_CONSUME, TRANSACTION_TYPE_RECHARGE, TRANSACTION_TYPE_TRANSFER_ACCOUNT})
+	if records == nil || err != nil {
+		return 0, 0, nil, err
+	}
+	for _, record := range records {
+		detail := &userRecordDetail{
+			Time:    record.CreatedAt,
+			Type:    record.Type,
+			Species: record.Species,
+		}
+		switch TransactionType(detail.Type) {
+		case TRANSACTION_TYPE_CONSUME:
+			detail.Account = record.To
+			if record.Extra != nil {
+				extra := pb.FlowingWaterExtra{}
+				if err := proto.Unmarshal(record.Extra, &extra); err == nil {
+					detail.GoodsID = extra.GoodsID
+				}
+			}
+			detail.Money = -record.Money
+			totalPay += record.Money
+		case TRANSACTION_TYPE_RECHARGE:
+			detail.Account = record.From
+			detail.Money = record.Money
+			totalIncome += record.Money
+		case TRANSACTION_TYPE_TRANSFER_ACCOUNT:
+			if record.From == account {
+				detail.Money = -record.Money
+				detail.Account = record.To
+				totalPay += record.Money
+			} else {
+				detail.Money = record.Money
+				detail.Account = record.From
+				totalIncome += record.Money
+			}
+		}
+		details = append(details, detail)
+	}
+	return
+}
+
+func selectCanteenRecord(account string) (totalIncome float64, details []*canteenRecordDetail, err error) {
+	records, err := Select(account, 0, 0, []TransactionType{TRANSACTION_TYPE_CONSUME})
+	if records == nil || err != nil {
+		return 0, nil, err
+	}
+	for _, record := range records {
+		detail := &canteenRecordDetail{
+			Time:    record.CreatedAt,
+			Species: record.Species,
+			Money:   record.Money,
+			Account: record.From,
+		}
+		if record.Extra != nil {
+			extra := pb.FlowingWaterExtra{}
+			if err := proto.Unmarshal(record.Extra, &extra); err == nil {
+				detail.GoodsID = extra.GoodsID
+			}
+		}
+		details = append(details, detail)
+		totalIncome += record.Money
+	}
 	return
 }
